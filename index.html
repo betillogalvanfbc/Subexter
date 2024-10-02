@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subexterr</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+    input {
+      padding: 10px;
+      width: 300px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      padding: 5px 0;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    #results ul {
+      max-height: 200px;
+      overflow-y: scroll;
+      border-top: 1px solid #ddd;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Subexter</h1>
+    <input type="text" id="domainInput" placeholder="Enter domain">
+    <button id="extractButton">Extract Subdomains</button>
+
+    <div id="error" class="error"></div>
+
+    <div id="results">
+      <h2>Subdomains</h2>
+      <ul id="subdomainList"></ul>
+    </div>
+  </div>
+
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const extractButton = document.getElementById('extractButton');
+      const domainInput = document.getElementById('domainInput');
+      const subdomainList = document.getElementById('subdomainList');
+      const errorDiv = document.getElementById('error');
+
+      extractButton.addEventListener('click', function () {
+        const domain = domainInput.value.trim();
+
+        if (!domain) {
+          showError('Please enter a domain');
+          return;
+        }
+
+        fetchSubdomains(domain);
+      });
+
+      async function fetchSubdomains(domain) {
+        const crtsh_url = `https://crt.sh/?q=%25.${domain}&output=json`;
+
+        try {
+          clearError();
+          clearSubdomainList();
+
+          const response = await axios.get(crtsh_url);
+
+          const subdomainSet = new Set();
+          // Procesamos la respuesta JSON y extraemos los subdominios
+          response.data.forEach((entry) => {
+            const names = entry.name_value.split('\n');
+            names.forEach((name) => {
+              if (!name.includes('@')) {  // Excluir emails
+                subdomainSet.add(name.trim());
+              }
+            });
+          });
+
+          displaySubdomains(Array.from(subdomainSet).sort());
+        } catch (error) {
+          showError('Failed to fetch subdomains. CORS issue or other error.');
+          console.error(error);
+        }
+      }
+
+      function displaySubdomains(subdomains) {
+        if (subdomains.length === 0) {
+          showError('No subdomains found');
+          return;
+        }
+
+        subdomains.forEach((subdomain) => {
+          const li = document.createElement('li');
+          li.textContent = subdomain;
+          subdomainList.appendChild(li);
+        });
+      }
+
+      function showError(message) {
+        errorDiv.textContent = message;
+      }
+
+      function clearError() {
+        errorDiv.textContent = '';
+      }
+
+      function clearSubdomainList() {
+        subdomainList.innerHTML = '';
+      }
+    });
+  </script>
+</body>
+</html>
